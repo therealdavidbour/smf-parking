@@ -1,0 +1,9 @@
+[project]
+name = "smf_parking"
+version = "0.1.0"
+description = "Collect Sacramento International Airport parking data into GitHub-backed JSON files."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.34.2",
+]
