@@ -22,7 +22,7 @@ The scraper writes:
 Snapshot shape:
 
 ```json
-{"lots":[{"free_spaces":273,"id":8,"name":"Daily Lot","occupied_spaces":2730,"total_capacity":3003}],"scraped_at":"2026-06-10T12:00:00+00:00"}
+{"lots":[{"free_spaces":273,"id":2,"name":"Daily A","pricing":"$2 /30min | $14 /day max","status":"open"}],"scraped_at":"2026-06-10T12:00:00+00:00"}
 ```
 
 With a 5-minute interval and the current 5-lot payload, expected raw JSONL size
@@ -39,14 +39,21 @@ History is kept indefinitely by default.
 Configuration is environment-variable based:
 
 ```text
-SMF_COUNT_URL=https://smf-count.ipparkingna.com/live-count
-SMF_COUNT_INSECURE_TLS=true
+SMF_PARKING_URL=https://flysmf.gov/to-and-from/parking
+SMF_PARKING_INSECURE_TLS=false
 REQUEST_TIMEOUT_SECONDS=10
 ```
 
-`SMF_COUNT_URL` and `REQUEST_TIMEOUT_SECONDS` have defaults. TLS verification is
-enabled by default unless `SMF_COUNT_INSECURE_TLS` is set to a truthy value such
+`SMF_PARKING_URL` and `REQUEST_TIMEOUT_SECONDS` have defaults. TLS verification is
+enabled by default unless `SMF_PARKING_INSECURE_TLS` is set to a truthy value such
 as `true`, `1`, `yes`, or `on`.
+
+The FlySMF page renders parking availability through a lazy Livewire component.
+The scraper first requests the parking page, extracts the `lots` component's
+`wire:snapshot`, `x-intersect` lazy-load payload, CSRF token, and
+`data-update-uri`, then posts the lazy-load call to `/livewire/update`. The
+returned table provides `Lot`, `Open Spaces`, and `Pricing`; occupied-space and
+capacity values are not available from this source.
 
 ## Workflows
 
@@ -65,7 +72,7 @@ as `true`, `1`, `yes`, or `on`.
 Run a single scrape:
 
 ```bash
-SMF_COUNT_INSECURE_TLS=true uv run python query.py
+uv run python query.py
 ```
 
 This creates or updates:
@@ -80,7 +87,7 @@ data/occupancy/YYYY-MM-DD.jsonl
 Recommended checks:
 
 - Compile the script with `uv run python -m py_compile query.py`.
-- Run one local scrape with `SMF_COUNT_INSECURE_TLS=true`.
+- Run one local scrape with `uv run python query.py`.
 - Validate `data/latest.json` with `uv run python -m json.tool data/latest.json`.
 - Validate each line in the daily JSONL file as independent JSON.
 - Confirm GitHub Actions commits data changes.

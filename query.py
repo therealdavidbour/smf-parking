@@ -2,15 +2,18 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+from html.parser import HTMLParser
+import html
 import json
 import os
 from pathlib import Path
+import re
 from typing import Any
 
 import requests
 
 
-DEFAULT_COUNT_URL = "https://smf-count.ipparkingna.com/live-count"
+DEFAULT_PARKING_URL = "https://flysmf.gov/to-and-from/parking"
 DATA_DIR = Path("data")
 LATEST_PATH = DATA_DIR / "latest.json"
 OCCUPANCY_DIR = DATA_DIR / "occupancy"
@@ -21,25 +24,93 @@ class ParkingLot:
     scraped_at: datetime
     id: int
     name: str
-    free_spaces: int
-    occupied_spaces: int
-    total_capacity: int
+    free_spaces: int | None
+    status: str
+    pricing: str
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], scraped_at: datetime) -> "ParkingLot":
+    def from_row(cls, row_number: int, row: list[str], scraped_at: datetime) -> "ParkingLot":
+        if len(row) < 2:
+            raise ValueError(f"Expected at least lot and open-space cells, got {row!r}")
+
+        raw_spaces = row[1].replace(",", "")
+        free_spaces = int(raw_spaces) if raw_spaces.isdigit() else None
+        status = "open" if free_spaces is not None else row[1].strip().lower()
+
         return cls(
             scraped_at=scraped_at,
-            id=int(data["id"]),
-            name=str(data["name"]),
-            free_spaces=int(data["free_spaces"]),
-            occupied_spaces=int(data["occupied_spaces"]),
-            total_capacity=int(data["total_capacity"]),
+            id=row_number,
+            name=row[0],
+            free_spaces=free_spaces,
+            status=status,
+            pricing=row[2] if len(row) > 2 else "",
         )
 
     def to_json_dict(self) -> dict[str, Any]:
         lot = asdict(self)
         lot.pop("scraped_at")
         return lot
+
+
+class ParkingPageParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.csrf_token: str | None = None
+        self.update_uri: str | None = None
+        self.component_snapshot: str | None = None
+        self.lazy_payload: str | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attr_map = {name: value or "" for name, value in attrs}
+
+        if tag == "script" and attr_map.get("data-update-uri"):
+            self.csrf_token = attr_map.get("data-csrf")
+            self.update_uri = attr_map.get("data-update-uri")
+            return
+
+        if tag != "div" or "wire:snapshot" not in attr_map:
+            return
+
+        snapshot = attr_map["wire:snapshot"]
+        if '"name":"lots"' not in snapshot and '"name": "lots"' not in snapshot:
+            return
+
+        intersect = attr_map.get("x-intersect", "")
+        match = re.search(r"__lazyLoad\('([^']+)'\)", intersect)
+        if not match:
+            return
+
+        self.component_snapshot = snapshot
+        self.lazy_payload = html.unescape(match.group(1))
+
+
+class AvailabilityTableParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.rows: list[list[str]] = []
+        self._current_row: list[str] | None = None
+        self._current_cell: list[str] | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "tr":
+            self._current_row = []
+        elif tag == "td" and self._current_row is not None:
+            self._current_cell = []
+
+    def handle_data(self, data: str) -> None:
+        if self._current_cell is not None:
+            text = data.strip()
+            if text:
+                self._current_cell.append(text)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "td" and self._current_row is not None and self._current_cell is not None:
+            self._current_row.append(" ".join(self._current_cell))
+            self._current_cell = None
+        elif tag == "tr" and self._current_row is not None:
+            if self._current_row:
+                self.rows.append(self._current_row)
+            self._current_row = None
 
 
 def env_bool(name: str, default: bool = False) -> bool:
@@ -49,20 +120,112 @@ def env_bool(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def fetch_parking_lots() -> list[ParkingLot]:
-    url = os.environ.get("SMF_COUNT_URL", DEFAULT_COUNT_URL)
-    insecure_tls = env_bool("SMF_COUNT_INSECURE_TLS")
-    timeout = float(os.environ.get("REQUEST_TIMEOUT_SECONDS", "10"))
+def parse_parking_page(page_html: str) -> ParkingPageParser:
+    parser = ParkingPageParser()
+    parser.feed(page_html)
 
-    response = requests.get(url, verify=not insecure_tls, timeout=timeout)
+    missing = [
+        name
+        for name, value in {
+            "data-csrf": parser.csrf_token,
+            "data-update-uri": parser.update_uri,
+            "wire:snapshot": parser.component_snapshot,
+            "x-intersect lazy payload": parser.lazy_payload,
+        }.items()
+        if not value
+    ]
+    if missing:
+        raise ValueError(f"Parking page is missing expected Livewire fields: {', '.join(missing)}")
+
+    return parser
+
+
+def load_availability_html(
+    session: requests.Session,
+    parking_url: str,
+    page: ParkingPageParser,
+    timeout: float,
+    verify_tls: bool,
+) -> str:
+    assert page.csrf_token is not None
+    assert page.update_uri is not None
+    assert page.component_snapshot is not None
+    assert page.lazy_payload is not None
+
+    response = session.post(
+        requests.compat.urljoin(parking_url, page.update_uri),
+        json={
+            "_token": page.csrf_token,
+            "components": [
+                {
+                    "snapshot": page.component_snapshot,
+                    "updates": {},
+                    "calls": [
+                        {
+                            "path": "",
+                            "method": "__lazyLoad",
+                            "params": [page.lazy_payload],
+                        }
+                    ],
+                }
+            ],
+        },
+        headers={
+            "Accept": "application/json",
+            "Referer": parking_url,
+            "X-Livewire": "true",
+        },
+        timeout=timeout,
+        verify=verify_tls,
+    )
     response.raise_for_status()
 
     payload = response.json()
-    if not isinstance(payload, list):
-        raise TypeError("Expected live-count response to be a JSON list")
+    try:
+        availability_html = payload["components"][0]["effects"]["html"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise ValueError("Livewire response did not include availability HTML") from exc
+
+    if not isinstance(availability_html, str):
+        raise TypeError("Livewire availability HTML must be a string")
+
+    return availability_html
+
+
+def parse_availability_table(availability_html: str, scraped_at: datetime) -> list[ParkingLot]:
+    parser = AvailabilityTableParser()
+    parser.feed(availability_html)
+
+    lots = [
+        ParkingLot.from_row(row_number, row, scraped_at)
+        for row_number, row in enumerate(parser.rows, start=1)
+    ]
+    if not lots:
+        raise ValueError("No parking lots found in availability table")
+
+    return lots
+
+
+def fetch_parking_lots() -> list[ParkingLot]:
+    url = os.environ.get("SMF_PARKING_URL", DEFAULT_PARKING_URL)
+    insecure_tls = env_bool("SMF_PARKING_INSECURE_TLS")
+    timeout = float(os.environ.get("REQUEST_TIMEOUT_SECONDS", "10"))
+
+    session = requests.Session()
+    response = session.get(url, verify=not insecure_tls, timeout=timeout)
+    response.raise_for_status()
+
+    page = parse_parking_page(response.text)
+    availability_html = load_availability_html(
+        session=session,
+        parking_url=url,
+        page=page,
+        timeout=timeout,
+        verify_tls=not insecure_tls,
+    )
 
     scraped_at = datetime.now(timezone.utc)
-    return [ParkingLot.from_dict(item, scraped_at) for item in payload]
+    return parse_availability_table(availability_html, scraped_at)
 
 
 def build_snapshot(parking_lots: list[ParkingLot]) -> dict[str, Any]:

@@ -3,10 +3,11 @@
 Collect Sacramento International Airport parking data into JSON files stored in
 this GitHub repository.
 
-The live occupancy source is:
+The scraper reads the FlySMF parking page and lazy-loads its parking
+availability table:
 
 ```text
-https://smf-count.ipparkingna.com/live-count
+https://flysmf.gov/to-and-from/parking
 ```
 
 ## Data Files
@@ -19,7 +20,7 @@ The scraper writes two repo-backed data files:
 Each JSONL line has this shape:
 
 ```json
-{"lots":[{"free_spaces":273,"id":8,"name":"Daily Lot","occupied_spaces":2730,"total_capacity":3003}],"scraped_at":"2026-06-10T12:00:00+00:00"}
+{"lots":[{"free_spaces":273,"id":2,"name":"Daily A","pricing":"$2 /30min | $14 /day max","status":"open"}],"scraped_at":"2026-06-10T12:00:00+00:00"}
 ```
 
 ## Usage
@@ -27,13 +28,13 @@ Each JSONL line has this shape:
 Run one scrape locally:
 
 ```bash
-SMF_COUNT_INSECURE_TLS=true uv run python query.py
+uv run python query.py
 ```
 
 Configuration is set with environment variables:
 
-- `SMF_COUNT_URL`: live-count endpoint, defaults to the SMF live source
-- `SMF_COUNT_INSECURE_TLS`: set to `true` to skip TLS certificate verification
+- `SMF_PARKING_URL`: parking page URL, defaults to the SMF parking page
+- `SMF_PARKING_INSECURE_TLS`: set to `true` to skip TLS certificate verification
 - `REQUEST_TIMEOUT_SECONDS`: request timeout, defaults to `10`
 
 ## GitHub Actions
