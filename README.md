@@ -22,10 +22,6 @@ Each JSONL line has this shape:
 {"lots":[{"free_spaces":273,"id":8,"name":"Daily Lot","occupied_spaces":2730,"total_capacity":3003}],"scraped_at":"2026-06-10T12:00:00+00:00"}
 ```
 
-At a 5-minute scrape interval with the current 5-lot payload, the history is
-roughly 152 KiB per day, 4.4 MiB per month, and 54 MiB per year before Git
-history overhead.
-
 ## Usage
 
 Run one scrape locally:
