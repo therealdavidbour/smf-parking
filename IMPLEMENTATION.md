@@ -18,6 +18,12 @@ The scraper writes:
   - Appended every scrape.
   - Uses UTC dates from the scrape timestamp.
   - Keeps one compact JSON object per line.
+- `index.html`
+  - Rebuilt every scrape from all stored occupancy JSONL files.
+  - Embeds chart-ready history ordered from the oldest scrape to the newest.
+  - Shows total available spaces, per-lot trends, and observed fluctuation.
+  - Rendered from `templates/occupancy_report.html`.
+  - Uses Apache ECharts from jsDelivr for browser-side chart interaction.
 
 Snapshot shape:
 
@@ -80,6 +86,7 @@ This creates or updates:
 ```text
 data/latest.json
 data/occupancy/YYYY-MM-DD.jsonl
+index.html
 ```
 
 ## Testing

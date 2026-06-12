@@ -17,6 +17,8 @@ DEFAULT_PARKING_URL = "https://flysmf.gov/to-and-from/parking"
 DATA_DIR = Path("data")
 LATEST_PATH = DATA_DIR / "latest.json"
 OCCUPANCY_DIR = DATA_DIR / "occupancy"
+STATIC_REPORT_PATH = Path("index.html")
+REPORT_TEMPLATE_PATH = Path("templates") / "occupancy_report.html"
 
 
 @dataclass(frozen=True)
@@ -255,13 +257,102 @@ def write_json_data(snapshot: dict[str, Any]) -> Path:
     return history_path
 
 
+def load_occupancy_history() -> list[dict[str, Any]]:
+    snapshots: list[dict[str, Any]] = []
+    if not OCCUPANCY_DIR.exists():
+        return snapshots
+
+    for path in sorted(OCCUPANCY_DIR.glob("*.jsonl")):
+        with path.open(encoding="utf-8") as history_file:
+            for line_number, line in enumerate(history_file, start=1):
+                if not line.strip():
+                    continue
+                try:
+                    snapshot = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    raise ValueError(f"{path}:{line_number}: invalid JSONL") from exc
+                if isinstance(snapshot, dict) and isinstance(snapshot.get("lots"), list):
+                    snapshots.append(snapshot)
+
+    return sorted(snapshots, key=lambda snapshot: snapshot.get("scraped_at", ""))
+
+
+def build_chart_data(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
+    lot_names: list[str] = []
+    seen_lots: set[str] = set()
+    points: list[dict[str, Any]] = []
+
+    for snapshot in snapshots:
+        lots_by_name: dict[str, int | None] = {}
+        total_free_spaces = 0
+
+        for lot in snapshot.get("lots", []):
+            if not isinstance(lot, dict):
+                continue
+
+            name = str(lot.get("name") or f"Lot {lot.get('id', '')}").strip()
+            if not name:
+                continue
+
+            free_spaces = lot.get("free_spaces")
+            value = free_spaces if isinstance(free_spaces, int) else None
+            lots_by_name[name] = value
+            if value is not None:
+                total_free_spaces += value
+
+            if name not in seen_lots:
+                seen_lots.add(name)
+                lot_names.append(name)
+
+        points.append(
+            {
+                "scraped_at": snapshot.get("scraped_at"),
+                "total_free_spaces": total_free_spaces,
+                "lots": lots_by_name,
+            }
+        )
+
+    totals = [point["total_free_spaces"] for point in points]
+    first_total = totals[0] if totals else 0
+    latest_total = totals[-1] if totals else 0
+
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "lot_names": lot_names,
+        "points": points,
+        "summary": {
+            "snapshot_count": len(points),
+            "first_total": first_total,
+            "latest_total": latest_total,
+            "net_change": latest_total - first_total,
+            "minimum_total": min(totals) if totals else 0,
+            "maximum_total": max(totals) if totals else 0,
+            "total_range": (max(totals) - min(totals)) if totals else 0,
+        },
+    }
+
+
+def build_static_report_html(chart_data: dict[str, Any]) -> str:
+    chart_json = json.dumps(chart_data, separators=(",", ":"), sort_keys=True)
+    chart_json_script = chart_json.replace("</", "<\\/")
+    template = REPORT_TEMPLATE_PATH.read_text(encoding="utf-8")
+    return template.replace("__CHART_DATA_JSON__", chart_json_script)
+
+
+def write_static_report() -> Path:
+    chart_data = build_chart_data(load_occupancy_history())
+    STATIC_REPORT_PATH.write_text(build_static_report_html(chart_data), encoding="utf-8")
+    return STATIC_REPORT_PATH
+
+
 def main() -> None:
     parking_lots = fetch_parking_lots()
     snapshot = build_snapshot(parking_lots)
     history_path = write_json_data(snapshot)
+    report_path = write_static_report()
     print(
         f"Wrote {len(parking_lots)} parking lots to "
-        f"{LATEST_PATH} and {history_path}"
+        f"{LATEST_PATH}, {history_path}, and {report_path}"
     )
 
 
