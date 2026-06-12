@@ -49,6 +49,71 @@
       color: var(--muted);
       font-size: 0.96rem;
     }
+    .timestamp {
+      display: inline-flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      text-align: right;
+    }
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border: 1px solid rgba(15, 124, 128, 0.24);
+      border-radius: 10px;
+      background: rgba(15, 124, 128, 0.08);
+      color: #0b5f63;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+    .live-badge-text {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .live-separator {
+      color: #7b8a96;
+      font-weight: 600;
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #0f7c80;
+      box-shadow: 0 0 0 0 rgba(15, 124, 128, 0.38);
+      animation: livePulse 1.6s ease-in-out infinite;
+      flex: 0 0 auto;
+    }
+    .live-dot.is-idle {
+      animation: none;
+      opacity: 0.35;
+    }
+    .timestamp-text {
+      white-space: nowrap;
+    }
+    @keyframes livePulse {
+      0% {
+        transform: scale(0.92);
+        box-shadow: 0 0 0 0 rgba(15, 124, 128, 0.42);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 8px rgba(15, 124, 128, 0);
+      }
+      100% {
+        transform: scale(0.92);
+        box-shadow: 0 0 0 0 rgba(15, 124, 128, 0);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot {
+        animation: none;
+      }
+    }
     .chart-panel, .info-panel {
       background: var(--panel);
       border: 1px solid var(--rule);
@@ -127,6 +192,7 @@
       }
       .timestamp {
         margin-top: 8px;
+        justify-content: flex-start;
       }
       .info-panel {
         grid-template-columns: 1fr;
@@ -150,7 +216,12 @@
         <h1>SMF Parking Pulse</h1>
         <p class="subhead">See how Sacramento Airport parking availability changes before you head to SMF. Refreshed about every 10 minutes.</p>
       </div>
-      <p class="timestamp" id="generatedAt"></p>
+      <p class="timestamp" id="generatedAt">
+        <span class="live-badge">
+          <span class="live-dot is-idle" aria-hidden="true"></span>
+          <span class="live-badge-text"><span>Live Updated</span><span class="live-separator" aria-hidden="true">|</span><span class="timestamp-text"></span></span>
+        </span>
+      </p>
     </header>
 
     <section class="info-panel" aria-label="Capacity and occupancy estimate source">
@@ -187,7 +258,8 @@
     const colors = ["#17202a", "#0f7c80", "#d1495b", "#2d6cdf", "#8a5a00", "#5f3dc4", "#28724f"];
     const numberFormatter = new Intl.NumberFormat();
     const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
-    const shortDateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric" });
+    const dayFormatter = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" });
+    const hourFormatter = new Intl.DateTimeFormat(undefined, { hour: "numeric" });
 
     const points = data.points || [];
     const lotNames = data.lot_names || [];
@@ -210,6 +282,14 @@
       document.getElementById(id).textContent = value;
     }
 
+    function setGeneratedAt(value) {
+      const element = document.getElementById("generatedAt");
+      const dot = element.querySelector(".live-dot");
+      const text = element.querySelector(".timestamp-text");
+      text.textContent = value;
+      dot.classList.remove("is-idle");
+    }
+
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, (char) => ({
         "&": "&amp;",
@@ -221,7 +301,7 @@
     }
 
     if (data.generated_at) {
-      setText("generatedAt", `Last refreshed ${dateFormatter.format(new Date(data.generated_at))}`);
+      setGeneratedAt(`Last refreshed ${dateFormatter.format(new Date(data.generated_at))}`);
     }
     if (points.length) {
       const first = pointTime(points[0]);
@@ -271,6 +351,9 @@
     function chartOption({ name, seriesData, color, total = false }) {
       const usableValues = seriesData.map((item) => item[1]).filter(Number.isFinite);
       const noData = !usableValues.length;
+      const chartMin = seriesData[0]?.[0];
+      const chartMax = seriesData[seriesData.length - 1]?.[0];
+      const showDayScale = Number.isFinite(chartMin) && Number.isFinite(chartMax) && (chartMax - chartMin) > 24 * 60 * 60 * 1000;
 
       return {
         color: [color],
@@ -280,9 +363,9 @@
           decal: { show: true },
         },
         grid: {
-          top: 18,
+          top: 38,
           right: 18,
-          bottom: total ? 78 : 46,
+          bottom: total ? 72 : 54,
           left: 58,
           containLabel: true,
         },
@@ -295,17 +378,48 @@
           textStyle: { color: "#17202a", fontSize: 13 },
           formatter: (params) => tooltipFormatter(params, seriesData),
         },
-        xAxis: {
-          type: "time",
-          axisLine: { lineStyle: { color: "#a8b2c0" } },
-          axisTick: { show: false },
-          axisLabel: {
-            color: "#5f6b7a",
-            hideOverlap: true,
-            formatter: (value) => shortDateFormatter.format(new Date(value)),
+        xAxis: [
+          {
+            type: "time",
+            position: "bottom",
+            min: chartMin,
+            max: chartMax,
+            axisLine: { lineStyle: { color: "#a8b2c0" } },
+            axisTick: { show: true },
+            axisLabel: {
+              color: "#5f6b7a",
+              hideOverlap: true,
+              margin: 12,
+              formatter: (value) => hourFormatter.format(new Date(value)),
+            },
+            splitLine: { show: false },
           },
-          splitLine: { show: false },
-        },
+          ...(showDayScale ? [{
+            type: "time",
+            position: "top",
+            min: chartMin,
+            max: chartMax,
+            minInterval: 24 * 60 * 60 * 1000,
+            maxInterval: 24 * 60 * 60 * 1000,
+            offset: 10,
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: {
+              color: "#40505f",
+              fontWeight: 700,
+              margin: 10,
+              hideOverlap: false,
+              interval: 0,
+              showMinLabel: true,
+              showMaxLabel: true,
+              formatter: (value) => dayFormatter.format(new Date(value)),
+            },
+            splitLine: {
+              show: true,
+              lineStyle: { color: "#eef2f6" },
+            },
+          }] : []),
+        ],
         yAxis: {
           type: "value",
           min: (value) => Math.max(0, Math.floor(value.min - Math.max(5, (value.max - value.min) * 0.08))),
@@ -319,14 +433,14 @@
         dataZoom: [
           {
             type: "inside",
-            xAxisIndex: 0,
+            xAxisIndex: [0, 1],
             filterMode: "none",
             zoomOnMouseWheel: true,
             moveOnMouseMove: true,
           },
           ...(total ? [{
             type: "slider",
-            xAxisIndex: 0,
+            xAxisIndex: [0, 1],
             height: 28,
             bottom: 18,
             borderColor: "#d8dee7",
