@@ -58,7 +58,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+<<<<<<< Updated upstream
+          git add data/latest.json data/occupancy data/lot_config.json index.html
+=======
           git add data/latest.json data/occupancy index.html
+>>>>>>> Stashed changes
           if git diff --cached --quiet; then
             echo "No data changes to commit."
             exit 0

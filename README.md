@@ -16,12 +16,17 @@ The scraper writes these repo-backed files:
 
 - `data/latest.json`: the newest scrape snapshot
 - `data/occupancy/YYYY-MM-DD.jsonl`: one compact JSON line per scrape
+- `data/lot_config.json`: lot display-name aliases and hard capacity values
 - `index.html`: a static parking occupancy history chart generated from all
   stored JSONL snapshots, oldest first
 
 The static page markup lives in `templates/occupancy_report.html`; `query.py`
 injects the generated chart JSON into that template. The charts are rendered in
 the browser with Apache ECharts loaded from jsDelivr.
+
+Configured capacity values are used to estimate occupied spaces from records
+that only report free spaces. Closed lots without a free-space value remain
+unknown for occupied-space estimates.
 
 Each JSONL line has this shape:
 

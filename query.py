@@ -17,6 +17,7 @@ DEFAULT_PARKING_URL = "https://flysmf.gov/to-and-from/parking"
 DATA_DIR = Path("data")
 LATEST_PATH = DATA_DIR / "latest.json"
 OCCUPANCY_DIR = DATA_DIR / "occupancy"
+LOT_CONFIG_PATH = DATA_DIR / "lot_config.json"
 STATIC_REPORT_PATH = Path("index.html")
 REPORT_TEMPLATE_PATH = Path("templates") / "occupancy_report.html"
 
@@ -277,28 +278,73 @@ def load_occupancy_history() -> list[dict[str, Any]]:
     return sorted(snapshots, key=lambda snapshot: snapshot.get("scraped_at", ""))
 
 
+def load_lot_config() -> dict[str, Any]:
+    if not LOT_CONFIG_PATH.exists():
+        return {"lot_name_aliases": {}, "lots": {}}
+
+    config = json.loads(LOT_CONFIG_PATH.read_text(encoding="utf-8"))
+    if not isinstance(config, dict):
+        raise TypeError(f"{LOT_CONFIG_PATH} must contain a JSON object")
+
+    return config
+
+
+def canonical_lot_name(name: Any, lot_id: Any, aliases: dict[str, str]) -> str:
+    raw_name = str(name or f"Lot {lot_id}").strip()
+    return aliases.get(raw_name.lower(), raw_name)
+
+
+def int_value(value: Any) -> int | None:
+    return value if isinstance(value, int) else None
+
+
 def build_chart_data(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
+    lot_config = load_lot_config()
+    aliases = {
+        str(alias).lower(): str(canonical)
+        for alias, canonical in lot_config.get("lot_name_aliases", {}).items()
+    }
+    configured_lots = lot_config.get("lots", {})
+    capacities = {
+        str(name): lot.get("capacity")
+        for name, lot in configured_lots.items()
+        if isinstance(lot, dict) and isinstance(lot.get("capacity"), int)
+    }
     lot_names: list[str] = []
     seen_lots: set[str] = set()
     points: list[dict[str, Any]] = []
 
     for snapshot in snapshots:
         lots_by_name: dict[str, int | None] = {}
+        occupied_by_name: dict[str, int | None] = {}
+        capacities_by_name: dict[str, int | None] = {}
         total_free_spaces = 0
+        total_occupied_spaces = 0
+        total_capacity = 0
 
         for lot in snapshot.get("lots", []):
             if not isinstance(lot, dict):
                 continue
 
-            name = str(lot.get("name") or f"Lot {lot.get('id', '')}").strip()
+            name = canonical_lot_name(lot.get("name"), lot.get("id", ""), aliases)
             if not name:
                 continue
 
-            free_spaces = lot.get("free_spaces")
-            value = free_spaces if isinstance(free_spaces, int) else None
-            lots_by_name[name] = value
-            if value is not None:
-                total_free_spaces += value
+            free_spaces = int_value(lot.get("free_spaces"))
+            capacity = capacities.get(name)
+            occupied_spaces = int_value(lot.get("occupied_spaces"))
+            if occupied_spaces is None and capacity is not None and free_spaces is not None:
+                occupied_spaces = max(capacity - free_spaces, 0)
+
+            lots_by_name[name] = free_spaces
+            occupied_by_name[name] = occupied_spaces
+            capacities_by_name[name] = capacity
+            if free_spaces is not None:
+                total_free_spaces += free_spaces
+            if occupied_spaces is not None:
+                total_occupied_spaces += occupied_spaces
+            if capacity is not None:
+                total_capacity += capacity
 
             if name not in seen_lots:
                 seen_lots.add(name)
@@ -308,11 +354,16 @@ def build_chart_data(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
             {
                 "scraped_at": snapshot.get("scraped_at"),
                 "total_free_spaces": total_free_spaces,
+                "total_occupied_spaces": total_occupied_spaces,
+                "total_capacity": total_capacity,
                 "lots": lots_by_name,
+                "occupied_lots": occupied_by_name,
+                "capacities": capacities_by_name,
             }
         )
 
     totals = [point["total_free_spaces"] for point in points]
+    occupied_totals = [point["total_occupied_spaces"] for point in points]
     first_total = totals[0] if totals else 0
     latest_total = totals[-1] if totals else 0
 
@@ -328,6 +379,8 @@ def build_chart_data(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
             "minimum_total": min(totals) if totals else 0,
             "maximum_total": max(totals) if totals else 0,
             "total_range": (max(totals) - min(totals)) if totals else 0,
+            "latest_occupied_total": occupied_totals[-1] if occupied_totals else 0,
+            "capacity_total": points[-1]["total_capacity"] if points else 0,
         },
     }
 
