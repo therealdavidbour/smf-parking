@@ -1,0 +1,29 @@
+{
+  "lot_name_aliases": {
+    "daily a": "Daily A",
+    "daily lot": "Daily A",
+    "east economy": "East Economy Lot",
+    "east economy lot": "East Economy Lot",
+    "garage": "Garage",
+    "parking garage": "Garage",
+    "south economy lot": "South Economy Lot",
+    "west economy lot": "West Economy Lot"
+  },
+  "lots": {
+    "Daily A": {
+      "capacity": 3003
+    },
+    "East Economy Lot": {
+      "capacity": 5913
+    },
+    "Garage": {
+      "capacity": 5230
+    },
+    "South Economy Lot": {
+      "capacity": 2936
+    },
+    "West Economy Lot": {
+      "capacity": 3000
+    }
+  }
+}

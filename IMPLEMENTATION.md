@@ -24,6 +24,10 @@ The scraper writes:
   - Shows total available spaces, per-lot trends, and observed fluctuation.
   - Rendered from `templates/occupancy_report.html`.
   - Uses Apache ECharts from jsDelivr for browser-side chart interaction.
+- `data/lot_config.json`
+  - Stores lot display-name aliases and hard capacity values.
+  - Used to derive occupied-space estimates when records only include free
+    spaces.
 
 Snapshot shape:
 
@@ -85,6 +89,7 @@ This creates or updates:
 
 ```text
 data/latest.json
+data/lot_config.json
 data/occupancy/YYYY-MM-DD.jsonl
 index.html
 ```
