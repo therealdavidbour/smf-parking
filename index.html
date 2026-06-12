@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMF Parking Occupancy History</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #5f6b7a;
+      --rule: #d8dee7;
+      --accent: #0f7c80;
+      --accent-2: #d1495b;
+      --accent-3: #2d6cdf;
+      --accent-4: #8a5a00;
+      --accent-5: #5f3dc4;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 20px;
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+    .subhead, .timestamp {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat, .chart-panel, .table-panel {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+    }
+    .stat {
+      padding: 14px;
+      min-width: 0;
+    }
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .stat strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.55rem;
+      line-height: 1.1;
+    }
+    .chart-panel {
+      padding: 16px;
+    }
+    .lot-charts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .chart-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px 16px;
+      margin-bottom: 10px;
+    }
+    .chart-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+    .chart-meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+    .chart {
+      width: 100%;
+      height: 520px;
+    }
+    .lot-charts .chart {
+      height: 300px;
+    }
+    .chart-fallback {
+      display: none;
+      margin: 0;
+      padding: 18px;
+      color: var(--muted);
+      border: 1px dashed var(--rule);
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+    .table-panel {
+      margin-top: 16px;
+      overflow: auto;
+    }
+    .table-panel summary {
+      cursor: pointer;
+      padding: 12px 14px;
+      color: var(--ink);
+      font-weight: 700;
+      list-style-position: inside;
+    }
+    .table-panel summary:hover {
+      background: #fbfcfd;
+    }
+    .table-panel[open] summary {
+      border-bottom: 1px solid var(--rule);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 740px;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--rule);
+      text-align: right;
+      white-space: nowrap;
+    }
+    th:first-child, td:first-child {
+      text-align: left;
+    }
+    th {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: #fbfcfd;
+    }
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+    @media (max-width: 820px) {
+      main {
+        width: min(100vw - 20px, 1180px);
+        padding-top: 18px;
+      }
+      header {
+        display: block;
+      }
+      .timestamp {
+        margin-top: 8px;
+      }
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .lot-charts {
+        grid-template-columns: 1fr;
+      }
+      .chart {
+        height: 430px;
+      }
+      .lot-charts .chart {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>SMF Parking Occupancy History</h1>
+        <p class="subhead">Available parking spaces over time, starting with the oldest stored scrape.</p>
+      </div>
+      <p class="timestamp" id="generatedAt"></p>
+    </header>
+
+    <section class="stats" aria-label="Parking fluctuation summary">
+      <div class="stat"><span>Snapshots</span><strong id="snapshotCount">0</strong></div>
+      <div class="stat"><span>Latest Available</span><strong id="latestTotal">0</strong></div>
+      <div class="stat"><span>Net Change</span><strong id="netChange">0</strong></div>
+      <div class="stat"><span>Observed Range</span><strong id="totalRange">0</strong></div>
+    </section>
+
+    <section class="chart-panel" aria-label="Total parking occupancy chart">
+      <div class="chart-head">
+        <div>
+          <h2 class="chart-title">Total Available Spaces</h2>
+          <p class="chart-meta">Sum of reported free spaces across open lots; closed lots with no free-space value are excluded.</p>
+          <p class="chart-meta" id="rangeLabel"></p>
+        </div>
+        <p class="chart-meta">Drag or scroll to zoom</p>
+      </div>
+      <div class="chart" id="totalChart"></div>
+      <p class="chart-fallback" id="chartFallback">Charts require JavaScript and the ECharts library to load.</p>
+    </section>
+
+    <section class="lot-charts" id="lotCharts" aria-label="Parking lot occupancy charts"></section>
+
+    <details class="table-panel">
+      <summary>View snapshot table</summary>
+      <table>
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </details>
+  </main>
+
+  <script id="chart-data" type="application/json">{"generated_at":"2026-06-12T03:34:18.185794+00:00","lot_names":["Garage","Daily A","South Economy Lot","East Economy Lot","West Economy Lot"],"points":[{"lots":{"Daily A":101,"East Economy Lot":835,"Garage":131,"South Economy Lot":1451,"West Economy Lot":null},"scraped_at":"2026-06-11T19:36:27.786534+00:00","total_free_spaces":2518},{"lots":{"Daily A":98,"East Economy Lot":836,"Garage":142,"South Economy Lot":1455,"West Economy Lot":null},"scraped_at":"2026-06-11T19:44:56.211838+00:00","total_free_spaces":2531},{"lots":{"Daily A":115,"East Economy Lot":865,"Garage":189,"South Economy Lot":1454,"West Economy Lot":null},"scraped_at":"2026-06-11T21:51:03.531100+00:00","total_free_spaces":2623},{"lots":{"Daily A":123,"East Economy Lot":882,"Garage":192,"South Economy Lot":1443,"West Economy Lot":null},"scraped_at":"2026-06-11T23:08:01.826150+00:00","total_free_spaces":2640},{"lots":{"Daily A":122,"East Economy Lot":882,"Garage":179,"South Economy Lot":1443,"West Economy Lot":null},"scraped_at":"2026-06-11T23:13:04.743017+00:00","total_free_spaces":2626},{"lots":{"Daily A":126,"East Economy Lot":885,"Garage":174,"South Economy Lot":1441,"West Economy Lot":null},"scraped_at":"2026-06-11T23:18:03.551403+00:00","total_free_spaces":2626},{"lots":{"Daily A":122,"East Economy Lot":882,"Garage":169,"South Economy Lot":1435,"West Economy Lot":null},"scraped_at":"2026-06-11T23:28:02.540555+00:00","total_free_spaces":2608},{"lots":{"Daily A":119,"East Economy Lot":883,"Garage":164,"South Economy Lot":1433,"West Economy Lot":null},"scraped_at":"2026-06-11T23:38:05.153994+00:00","total_free_spaces":2599},{"lots":{"Daily A":123,"East Economy Lot":882,"Garage":171,"South Economy Lot":1428,"West Economy Lot":null},"scraped_at":"2026-06-11T23:48:05.844219+00:00","total_free_spaces":2604},{"lots":{"Daily A":118,"East Economy Lot":881,"Garage":175,"South Economy Lot":1426,"West Economy Lot":null},"scraped_at":"2026-06-11T23:58:07.118610+00:00","total_free_spaces":2600},{"lots":{"Daily A":126,"East Economy Lot":877,"Garage":178,"South Economy Lot":1425,"West Economy Lot":null},"scraped_at":"2026-06-12T00:08:11.608707+00:00","total_free_spaces":2606},{"lots":{"Daily A":126,"East Economy Lot":876,"Garage":166,"South Economy Lot":1422,"West Economy Lot":null},"scraped_at":"2026-06-12T00:18:10.641120+00:00","total_free_spaces":2590},{"lots":{"Daily A":130,"East Economy Lot":881,"Garage":155,"South Economy Lot":1419,"West Economy Lot":null},"scraped_at":"2026-06-12T00:28:11.959858+00:00","total_free_spaces":2585},{"lots":{"Daily A":136,"East Economy Lot":879,"Garage":156,"South Economy Lot":1422,"West Economy Lot":null},"scraped_at":"2026-06-12T00:38:14.042556+00:00","total_free_spaces":2593},{"lots":{"Daily A":142,"East Economy Lot":890,"Garage":185,"South Economy Lot":1424,"West Economy Lot":null},"scraped_at":"2026-06-12T00:48:15.389945+00:00","total_free_spaces":2641},{"lots":{"Daily A":147,"East Economy Lot":901,"Garage":211,"South Economy Lot":1421,"West Economy Lot":null},"scraped_at":"2026-06-12T00:58:18.075835+00:00","total_free_spaces":2680},{"lots":{"Daily A":155,"East Economy Lot":910,"Garage":226,"South Economy Lot":1421,"West Economy Lot":null},"scraped_at":"2026-06-12T01:08:20.484366+00:00","total_free_spaces":2712},{"lots":{"Daily A":153,"East Economy Lot":908,"Garage":253,"South Economy Lot":1421,"West Economy Lot":null},"scraped_at":"2026-06-12T01:18:21.716897+00:00","total_free_spaces":2735},{"lots":{"Daily A":163,"East Economy Lot":923,"Garage":280,"South Economy Lot":1421,"West Economy Lot":null},"scraped_at":"2026-06-12T01:28:22.189682+00:00","total_free_spaces":2787},{"lots":{"Daily A":187,"East Economy Lot":932,"Garage":311,"South Economy Lot":1423,"West Economy Lot":null},"scraped_at":"2026-06-12T01:38:23.723177+00:00","total_free_spaces":2853},{"lots":{"Daily A":187,"East Economy Lot":932,"Garage":311,"South Economy Lot":1423,"West Economy Lot":null},"scraped_at":"2026-06-12T01:39:46.234736+00:00","total_free_spaces":2853},{"lots":{"Daily A":193,"East Economy Lot":944,"Garage":330,"South Economy Lot":1432,"West Economy Lot":null},"scraped_at":"2026-06-12T01:48:25.539464+00:00","total_free_spaces":2899},{"lots":{"Daily A":200,"East Economy Lot":957,"Garage":346,"South Economy Lot":1437,"West Economy Lot":null},"scraped_at":"2026-06-12T01:58:26.617695+00:00","total_free_spaces":2940},{"lots":{"Daily A":202,"East Economy Lot":963,"Garage":355,"South Economy Lot":1436,"West Economy Lot":null},"scraped_at":"2026-06-12T02:08:28.882727+00:00","total_free_spaces":2956},{"lots":{"Daily A":210,"East Economy Lot":965,"Garage":360,"South Economy Lot":1439,"West Economy Lot":null},"scraped_at":"2026-06-12T02:18:30.282602+00:00","total_free_spaces":2974},{"lots":{"Daily A":209,"East Economy Lot":970,"Garage":360,"South Economy Lot":1440,"West Economy Lot":null},"scraped_at":"2026-06-12T02:28:31.688710+00:00","total_free_spaces":2979},{"lots":{"Daily A":210,"East Economy Lot":971,"Garage":362,"South Economy Lot":1442,"West Economy Lot":null},"scraped_at":"2026-06-12T02:38:32.658625+00:00","total_free_spaces":2985},{"lots":{"Daily A":212,"East Economy Lot":965,"Garage":379,"South Economy Lot":1442,"West Economy Lot":null},"scraped_at":"2026-06-12T02:48:34.153325+00:00","total_free_spaces":2998},{"lots":{"Daily A":221,"East Economy Lot":967,"Garage":390,"South Economy Lot":1443,"West Economy Lot":null},"scraped_at":"2026-06-12T02:58:35.470754+00:00","total_free_spaces":3021},{"lots":{"Daily A":235,"East Economy Lot":976,"Garage":427,"South Economy Lot":1431,"West Economy Lot":null},"scraped_at":"2026-06-12T03:20:04.622051+00:00","total_free_spaces":3069}],"summary":{"first_total":2518,"latest_total":3069,"maximum_total":3069,"minimum_total":2518,"net_change":551,"snapshot_count":30,"total_range":551}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <script>
+    const data = JSON.parse(document.getElementById("chart-data").textContent);
+    const colors = ["#17202a", "#0f7c80", "#d1495b", "#2d6cdf", "#8a5a00", "#5f3dc4", "#28724f"];
+    const numberFormatter = new Intl.NumberFormat();
+    const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+    const shortDateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric" });
+
+    const points = data.points || [];
+    const lotNames = data.lot_names || [];
+    const summary = data.summary || {};
+    const charts = [];
+
+    function formatNumber(value) {
+      return numberFormatter.format(value || 0);
+    }
+
+    function signedNumber(value) {
+      const sign = value > 0 ? "+" : "";
+      return `${sign}${formatNumber(value)}`;
+    }
+
+    function pointTime(point) {
+      return new Date(point.scraped_at);
+    }
+
+    function setText(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      }[char]));
+    }
+
+    setText("snapshotCount", formatNumber(summary.snapshot_count));
+    setText("latestTotal", formatNumber(summary.latest_total));
+    setText("netChange", signedNumber(summary.net_change));
+    setText("totalRange", formatNumber(summary.total_range));
+
+    if (data.generated_at) {
+      setText("generatedAt", `Generated ${dateFormatter.format(new Date(data.generated_at))}`);
+    }
+    if (points.length) {
+      const first = pointTime(points[0]);
+      const last = pointTime(points[points.length - 1]);
+      setText("rangeLabel", `${dateFormatter.format(first)} to ${dateFormatter.format(last)}`);
+    }
+
+    function timestampFor(point) {
+      return pointTime(point).getTime();
+    }
+
+    function totalSeriesData() {
+      return points.map((point) => [timestampFor(point), point.total_free_spaces]);
+    }
+
+    function lotSeriesData(name) {
+      return points.map((point) => {
+        const value = point.lots[name];
+        return [timestampFor(point), Number.isFinite(value) ? value : null];
+      });
+    }
+
+    function valueChange(seriesData, dataIndex) {
+      const current = seriesData[dataIndex]?.[1];
+      const previous = seriesData[dataIndex - 1]?.[1];
+      if (!Number.isFinite(current) || !Number.isFinite(previous)) {
+        return null;
+      }
+      return current - previous;
+    }
+
+    function tooltipFormatter(params, seriesData) {
+      const item = Array.isArray(params) ? params[0] : params;
+      const dataIndex = item.dataIndex;
+      const value = item.value?.[1];
+      const delta = valueChange(seriesData, dataIndex);
+      const valueText = Number.isFinite(value) ? formatNumber(value) : "Closed";
+      const deltaText = delta == null ? "n/a" : signedNumber(delta);
+
+      return [
+        `<strong>${dateFormatter.format(new Date(item.value[0]))}</strong>`,
+        `<div style="display:flex;justify-content:space-between;gap:18px;"><span>${escapeHtml(item.seriesName)}</span><b>${valueText}</b></div>`,
+        `<div style="display:flex;justify-content:space-between;gap:18px;"><span>Change</span><b>${deltaText}</b></div>`,
+      ].join("");
+    }
+
+    function chartOption({ name, seriesData, color, total = false }) {
+      const usableValues = seriesData.map((item) => item[1]).filter(Number.isFinite);
+      const noData = !usableValues.length;
+
+      return {
+        color: [color],
+        animationDuration: 450,
+        aria: {
+          enabled: true,
+          decal: { show: true },
+        },
+        grid: {
+          top: 18,
+          right: 18,
+          bottom: total ? 78 : 46,
+          left: 58,
+          containLabel: true,
+        },
+        tooltip: {
+          trigger: "axis",
+          appendToBody: true,
+          borderColor: "#d8dee7",
+          borderWidth: 1,
+          backgroundColor: "rgba(255,255,255,0.98)",
+          textStyle: { color: "#17202a", fontSize: 13 },
+          formatter: (params) => tooltipFormatter(params, seriesData),
+        },
+        xAxis: {
+          type: "time",
+          axisLine: { lineStyle: { color: "#a8b2c0" } },
+          axisTick: { show: false },
+          axisLabel: {
+            color: "#5f6b7a",
+            hideOverlap: true,
+            formatter: (value) => shortDateFormatter.format(new Date(value)),
+          },
+          splitLine: { show: false },
+        },
+        yAxis: {
+          type: "value",
+          min: (value) => Math.max(0, Math.floor(value.min - Math.max(5, (value.max - value.min) * 0.08))),
+          max: (value) => Math.ceil(value.max + Math.max(5, (value.max - value.min) * 0.08)),
+          axisLabel: {
+            color: "#5f6b7a",
+            formatter: (value) => formatNumber(value),
+          },
+          splitLine: { lineStyle: { color: "#e5e9f0" } },
+        },
+        dataZoom: [
+          {
+            type: "inside",
+            xAxisIndex: 0,
+            filterMode: "none",
+            zoomOnMouseWheel: true,
+            moveOnMouseMove: true,
+          },
+          ...(total ? [{
+            type: "slider",
+            xAxisIndex: 0,
+            height: 28,
+            bottom: 18,
+            borderColor: "#d8dee7",
+            fillerColor: "rgba(15, 124, 128, 0.16)",
+            handleStyle: { color: "#0f7c80" },
+            textStyle: { color: "#5f6b7a" },
+            filterMode: "none",
+          }] : []),
+        ],
+        series: [{
+          name,
+          type: "line",
+          data: seriesData,
+          connectNulls: false,
+          showSymbol: total,
+          symbol: "emptyCircle",
+          symbolSize: total ? 7 : 6,
+          lineStyle: {
+            width: total ? 3 : 2.4,
+            color,
+          },
+          itemStyle: {
+            color,
+            borderWidth: 2,
+          },
+          emphasis: {
+            focus: "series",
+            lineStyle: { width: total ? 4 : 3.2 },
+          },
+          areaStyle: total ? {
+            color: {
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: "rgba(15, 124, 128, 0.18)" },
+                { offset: 1, color: "rgba(15, 124, 128, 0.02)" },
+              ],
+            },
+          } : undefined,
+        }],
+        graphic: noData ? [{
+          type: "text",
+          left: "center",
+          top: "middle",
+          style: {
+            text: "No open-space values recorded",
+            fill: "#5f6b7a",
+            fontSize: 13,
+          },
+        }] : [],
+      };
+    }
+
+    function createChart(element, option) {
+      const chart = echarts.init(element, null, { renderer: "canvas" });
+      chart.group = "parking-history";
+      chart.setOption(option);
+      charts.push(chart);
+      return chart;
+    }
+
+    function buildLotChartPanels() {
+      const container = document.getElementById("lotCharts");
+      container.textContent = "";
+
+      lotNames.forEach((name) => {
+        const panel = document.createElement("section");
+        panel.className = "chart-panel";
+
+        const head = document.createElement("div");
+        head.className = "chart-head";
+
+        const title = document.createElement("h2");
+        title.className = "chart-title";
+        title.textContent = name;
+
+        const meta = document.createElement("p");
+        meta.className = "chart-meta";
+        meta.textContent = "Spaces available";
+
+        const chart = document.createElement("div");
+        chart.className = "chart";
+
+        head.append(title, meta);
+        panel.append(head, chart);
+        container.append(panel);
+      });
+    }
+
+    function renderCharts() {
+      if (!window.echarts) {
+        document.getElementById("chartFallback").style.display = "block";
+        return;
+      }
+
+      charts.forEach((chart) => chart.dispose());
+      charts.length = 0;
+
+      createChart(document.getElementById("totalChart"), chartOption({
+        name: "Total",
+        seriesData: totalSeriesData(),
+        color: colors[1],
+        total: true,
+      }));
+
+      document.querySelectorAll("#lotCharts .chart").forEach((element, index) => {
+        const name = lotNames[index];
+        createChart(element, chartOption({
+          name,
+          seriesData: lotSeriesData(name),
+          color: colors[(index + 2) % colors.length],
+        }));
+      });
+
+      echarts.connect("parking-history");
+    }
+
+    function renderTable() {
+      const head = document.getElementById("tableHead");
+      const body = document.getElementById("tableBody");
+      const snapshots = points.slice().reverse();
+      head.innerHTML = `<tr><th>Scraped</th><th>Total</th>${lotNames.map((name) => `<th>${escapeHtml(name)}</th>`).join("")}</tr>`;
+      body.innerHTML = snapshots.map((point) => `
+        <tr>
+          <td>${dateFormatter.format(pointTime(point))}</td>
+          <td>${formatNumber(point.total_free_spaces)}</td>
+          ${lotNames.map((name) => `<td>${point.lots[name] == null ? "Closed" : formatNumber(point.lots[name])}</td>`).join("")}
+        </tr>
+      `).join("");
+    }
+
+    buildLotChartPanels();
+    renderCharts();
+    renderTable();
+
+    window.addEventListener("resize", () => {
+      charts.forEach((chart) => chart.resize());
+    });
+  </script>
+</body>
+</html>

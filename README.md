@@ -12,10 +12,16 @@ https://flysmf.gov/to-and-from/parking
 
 ## Data Files
 
-The scraper writes two repo-backed data files:
+The scraper writes these repo-backed files:
 
 - `data/latest.json`: the newest scrape snapshot
 - `data/occupancy/YYYY-MM-DD.jsonl`: one compact JSON line per scrape
+- `index.html`: a static parking occupancy history chart generated from all
+  stored JSONL snapshots, oldest first
+
+The static page markup lives in `templates/occupancy_report.html`; `query.py`
+injects the generated chart JSON into that template. The charts are rendered in
+the browser with Apache ECharts loaded from jsDelivr.
 
 Each JSONL line has this shape:
 
