@@ -422,7 +422,7 @@
         ],
         yAxis: {
           type: "value",
-          min: (value) => Math.max(0, Math.floor(value.min - Math.max(5, (value.max - value.min) * 0.08))),
+          min: 0,
           max: (value) => Math.ceil(value.max + Math.max(5, (value.max - value.min) * 0.08)),
           axisLabel: {
             color: "#5f6b7a",
