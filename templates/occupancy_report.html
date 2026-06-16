@@ -166,6 +166,45 @@
       color: var(--muted);
       font-size: 0.86rem;
     }
+    .lot-summary {
+      display: grid;
+      gap: 8px;
+      margin: 0 0 12px;
+    }
+    .lot-description {
+      margin: 0;
+      color: #40505f;
+      font-size: 0.88rem;
+    }
+    .lot-traits {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .lot-trait {
+      display: inline-flex;
+      min-width: 0;
+      align-items: center;
+      gap: 6px;
+      color: #40505f;
+      font-size: 0.8rem;
+      line-height: 1.25;
+    }
+    .lot-trait svg {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      color: var(--accent);
+    }
+    .lot-trait-muted svg {
+      color: #7b8a96;
+    }
+    .lot-trait-warning svg {
+      color: var(--accent-4);
+    }
     .chart {
       width: 100%;
       height: 520px;
@@ -264,6 +303,49 @@
     const points = data.points || [];
     const lotNames = data.lot_names || [];
     const charts = [];
+    const lotProfiles = {
+      "Garage": {
+        displayName: "Garage Lot",
+        description: "Covered near-terminal parking with bridge access to Terminal A and Terminal B.",
+        traits: [
+          { icon: "shuttle", label: "No shuttle", tone: "muted" },
+          { icon: "walk", label: "Pedestrian bridges" },
+        ],
+      },
+      "Daily A": {
+        displayName: "Daily A Lot",
+        description: "Lot before the garage entrance on Airport Boulevard.",
+        traits: [
+          { icon: "shuttle", label: "Shuttle every 15-20 min" },
+          { icon: "walk", label: "Walking access not listed", tone: "muted" },
+        ],
+      },
+      "South Economy Lot": {
+        description: "Lower-cost long-term lot south of the airport roadway system.",
+        traits: [
+          { icon: "shuttle", label: "Shuttle every 25-30 min" },
+          { icon: "walk", label: "No pedestrian walkway", tone: "warning" },
+        ],
+      },
+      "East Economy Lot": {
+        description: "Lower-cost long-term lot east of the terminals near Airport Boulevard.",
+        traits: [
+          { icon: "shuttle", label: "Shuttle every 25-30 min" },
+          { icon: "walk", label: "No pedestrian walkway", tone: "warning" },
+        ],
+      },
+      "West Economy Lot": {
+        description: "Lower-cost long-term lot west of the terminals along Airport Boulevard.",
+        traits: [
+          { icon: "shuttle", label: "Shuttle every 25-30 min" },
+          { icon: "walk", label: "No pedestrian walkway", tone: "warning" },
+        ],
+      },
+    };
+    const lotIcons = {
+      shuttle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M4 11h16"></path><path d="M8 7h8"></path><path d="M7 21h2"></path><path d="M15 21h2"></path><circle cx="8" cy="15" r="1"></circle><circle cx="16" cy="15" r="1"></circle></svg>`,
+      walk: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="1.8"></circle><path d="m10 8 4 .8"></path><path d="m11.5 8.2-1.2 5.1"></path><path d="m10.3 13.3-3 5.7"></path><path d="m10.6 13.4 4.4 2.6"></path><path d="m15 16 2 4"></path></svg>`,
+    };
 
     function formatNumber(value) {
       return numberFormatter.format(value || 0);
@@ -298,6 +380,39 @@
         '"': "&quot;",
         "'": "&#039;",
       }[char]));
+    }
+
+    function iconElement(name) {
+      const icon = document.createElement("span");
+      icon.setAttribute("aria-hidden", "true");
+      icon.innerHTML = lotIcons[name] || "";
+      return icon;
+    }
+
+    function buildLotSummary(name) {
+      const profile = lotProfiles[name];
+      if (!profile) {
+        return null;
+      }
+
+      const summary = document.createElement("div");
+      summary.className = "lot-summary";
+
+      const description = document.createElement("p");
+      description.className = "lot-description";
+      description.textContent = profile.description;
+
+      const traits = document.createElement("ul");
+      traits.className = "lot-traits";
+      profile.traits.forEach((trait) => {
+        const item = document.createElement("li");
+        item.className = `lot-trait${trait.tone ? ` lot-trait-${trait.tone}` : ""}`;
+        item.append(iconElement(trait.icon), document.createTextNode(trait.label));
+        traits.append(item);
+      });
+
+      summary.append(description, traits);
+      return summary;
     }
 
     if (data.generated_at) {
@@ -518,17 +633,23 @@
 
         const title = document.createElement("h2");
         title.className = "chart-title";
-        title.textContent = name;
+        title.textContent = lotProfiles[name]?.displayName || name;
 
         const meta = document.createElement("p");
         meta.className = "chart-meta";
         meta.textContent = "Free spaces over time";
 
+        const summary = buildLotSummary(name);
+
         const chart = document.createElement("div");
         chart.className = "chart";
 
         head.append(title, meta);
-        panel.append(head, chart);
+        panel.append(head);
+        if (summary) {
+          panel.append(summary);
+        }
+        panel.append(chart);
         container.append(panel);
       });
     }
