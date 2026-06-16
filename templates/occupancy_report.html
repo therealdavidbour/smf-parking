@@ -38,6 +38,25 @@
       align-items: end;
       margin-bottom: 20px;
     }
+    .brand {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 16px;
+    }
+    .brand-logo {
+      width: clamp(76px, 9vw, 112px);
+      height: clamp(76px, 9vw, 112px);
+      flex: 0 0 auto;
+      object-fit: cover;
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 1px 2px rgb(16 24 40 / 0.06);
+    }
+    .brand-copy {
+      min-width: 0;
+    }
     h1 {
       margin: 0 0 4px;
       font-size: clamp(1.8rem, 3vw, 2.8rem);
@@ -229,6 +248,14 @@
       header {
         display: block;
       }
+      .brand {
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .brand-logo {
+        width: 72px;
+        height: 72px;
+      }
       .timestamp {
         margin-top: 8px;
         justify-content: flex-start;
@@ -251,9 +278,12 @@
 <body>
   <main>
     <header>
-      <div>
-        <h1>SMF Parking Pulse</h1>
-        <p class="subhead">See how Sacramento Airport parking availability changes before you head to SMF. Refreshed about every 10 minutes.</p>
+      <div class="brand">
+        <img class="brand-logo" src="assets/smf-airport-logo.png" alt="" width="112" height="112">
+        <div class="brand-copy">
+          <h1>SMF Parking Pulse</h1>
+          <p class="subhead">See how Sacramento Airport parking availability changes before you head to SMF. Refreshed about every 10 minutes.</p>
+        </div>
       </div>
       <p class="timestamp" id="generatedAt">
         <span class="live-badge">
