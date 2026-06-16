@@ -74,6 +74,77 @@
       justify-content: flex-end;
       text-align: right;
     }
+    .header-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .source-details {
+      position: relative;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+    .source-summary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      list-style: none;
+      cursor: pointer;
+      color: #40505f;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .source-summary::-webkit-details-marker {
+      display: none;
+    }
+    .source-summary:focus-visible {
+      outline: 2px solid rgba(15, 124, 128, 0.35);
+      outline-offset: 4px;
+      border-radius: 8px;
+    }
+    .source-question {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border: 1px solid #b8c2cc;
+      border-radius: 999px;
+      color: var(--accent);
+      font-weight: 800;
+      line-height: 1;
+    }
+    .source-popover {
+      position: absolute;
+      z-index: 10;
+      top: calc(100% + 8px);
+      right: 0;
+      width: min(320px, calc(100vw - 32px));
+      padding: 12px;
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 16px 50px rgb(16 24 40 / 0.16);
+      color: #40505f;
+      font-size: 0.88rem;
+      font-weight: 400;
+      text-align: left;
+    }
+    .source-popover p {
+      margin: 0;
+    }
+    .source-popover p + p {
+      margin-top: 8px;
+    }
+    a {
+      color: var(--accent);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+    }
+    a:hover {
+      color: #0b5f63;
+    }
     .live-badge {
       display: inline-flex;
       align-items: center;
@@ -424,6 +495,14 @@
       header {
         display: block;
       }
+      .header-actions {
+        align-items: flex-start;
+        margin-top: 12px;
+      }
+      .source-popover {
+        right: auto;
+        left: 0;
+      }
       .brand {
         align-items: flex-start;
         gap: 12px;
@@ -464,12 +543,31 @@
           <p class="subhead">See how Sacramento Airport parking availability changes before you head to SMF. Refreshed about every 10 minutes.</p>
         </div>
       </div>
-      <p class="timestamp" id="generatedAt">
-        <span class="live-badge">
-          <span class="live-dot is-idle" aria-hidden="true"></span>
-          <span class="live-badge-text"><span>Live Updated</span><span class="live-separator" aria-hidden="true">|</span><span class="timestamp-text"></span></span>
-        </span>
-      </p>
+      <div class="header-actions">
+        <details class="source-details">
+          <summary class="source-summary">
+            <span class="source-question" aria-hidden="true">?</span>
+            <span>How does this work?</span>
+          </summary>
+          <div class="source-popover">
+            <p>
+              Parking availability data comes from the
+              <a href="https://flysmf.gov/to-and-from/parking">SMF parking webpage</a>.
+              This page charts the reported free spaces over time.
+            </p>
+            <p>
+              Built by <a href="https://davidbour.com">David Bour</a>. Not affiliated
+              with SMF or the City of Sacramento.
+            </p>
+          </div>
+        </details>
+        <p class="timestamp" id="generatedAt">
+          <span class="live-badge">
+            <span class="live-dot is-idle" aria-hidden="true"></span>
+            <span class="live-badge-text"><span>Live Updated</span><span class="live-separator" aria-hidden="true">|</span><span class="timestamp-text"></span></span>
+          </span>
+        </p>
+      </div>
     </header>
 
     <section class="stat-grid" id="statBadges" aria-label="Parking insight badges"></section>
@@ -506,7 +604,8 @@
       <h2>Capacity Assumptions</h2>
       <p>
         The airport previously published each lot's total number of spaces on
-        its parking page at <code>https://flysmf.gov/to-and-from/parking</code>.
+        its parking page at
+        <a href="https://flysmf.gov/to-and-from/parking">flysmf.gov/to-and-from/parking</a>.
         This dashboard uses those totals to estimate occupied spaces by
         subtracting the currently reported free spaces from each lot's total
         spaces.
@@ -527,6 +626,7 @@
     </section>
 
     <section class="lot-charts" id="lotCharts" aria-label="Parking lot occupancy charts"></section>
+
   </main>
 
   <script id="chart-data" type="application/json">__CHART_DATA_JSON__</script>
