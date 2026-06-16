@@ -114,6 +114,177 @@
     .timestamp-text {
       white-space: nowrap;
     }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 0 0 16px;
+    }
+    .stat-badge {
+      min-width: 0;
+      padding: 12px 14px;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+    }
+    .stat-badge:nth-child(2) {
+      border-left-color: var(--accent-3);
+    }
+    .stat-badge:nth-child(3) {
+      border-left-color: var(--accent-4);
+    }
+    .stat-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0 0 4px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .stat-help {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      flex: 0 0 auto;
+      border: 1px solid #b8c2cc;
+      border-radius: 999px;
+      background: transparent;
+      color: #5f6b7a;
+      font: inherit;
+      font-size: 0.68rem;
+      font-weight: 800;
+      line-height: 1;
+      text-transform: none;
+      cursor: help;
+    }
+    .stat-help:focus-visible {
+      outline: 2px solid rgba(15, 124, 128, 0.35);
+      outline-offset: 2px;
+    }
+    .stat-value {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(1.08rem, 2vw, 1.42rem);
+      font-weight: 760;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+    }
+    .stat-detail {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    .stat-modal {
+      width: min(620px, calc(100vw - 32px));
+      padding: 0;
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      color: var(--ink);
+      background: var(--panel);
+      box-shadow: 0 24px 80px rgb(16 24 40 / 0.22);
+    }
+    .stat-modal::backdrop {
+      background: rgb(23 32 42 / 0.38);
+    }
+    .stat-modal-body {
+      display: grid;
+      gap: 16px;
+      padding: 18px;
+    }
+    .stat-modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .stat-modal-eyebrow {
+      margin: 0 0 3px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .stat-modal-title {
+      margin: 0;
+      font-size: 1.2rem;
+      line-height: 1.2;
+    }
+    .stat-modal-close {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1.15rem;
+      line-height: 1;
+    }
+    .stat-modal-close:hover,
+    .stat-modal-close:focus-visible {
+      color: var(--ink);
+      border-color: #b8c2cc;
+    }
+    .stat-modal-summary {
+      display: grid;
+      gap: 3px;
+      padding: 11px 12px;
+      border: 1px solid #e5e9f0;
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+    .stat-modal-value {
+      margin: 0;
+      font-size: 1.45rem;
+      font-weight: 760;
+      line-height: 1.15;
+    }
+    .stat-modal-detail {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .stat-modal-section {
+      display: grid;
+      gap: 6px;
+    }
+    .stat-modal-section h3 {
+      margin: 0;
+      font-size: 0.84rem;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .stat-modal-section p,
+    .stat-modal-section li {
+      color: #40505f;
+      font-size: 0.9rem;
+    }
+    .stat-modal-section p {
+      margin: 0;
+    }
+    .stat-modal-equation {
+      margin: 0;
+      padding: 10px 12px;
+      overflow-x: auto;
+      border-radius: 8px;
+      background: #f6f8fa;
+      color: #24313e;
+      font: 0.86rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+    }
+    .stat-modal-list {
+      margin: 0;
+      padding-left: 18px;
+    }
     @keyframes livePulse {
       0% {
         transform: scale(0.92);
@@ -240,6 +411,11 @@
       border-radius: 8px;
       background: #fbfcfd;
     }
+    @media (max-width: 980px) {
+      .stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
     @media (max-width: 820px) {
       main {
         width: min(100vw - 20px, 1180px);
@@ -259,6 +435,9 @@
       .timestamp {
         margin-top: 8px;
         justify-content: flex-start;
+      }
+      .stat-grid {
+        grid-template-columns: 1fr;
       }
       .info-panel {
         grid-template-columns: 1fr;
@@ -293,6 +472,36 @@
       </p>
     </header>
 
+    <section class="stat-grid" id="statBadges" aria-label="Parking insight badges"></section>
+
+    <dialog class="stat-modal" id="statModal" aria-labelledby="statModalTitle">
+      <div class="stat-modal-body">
+        <div class="stat-modal-head">
+          <div>
+            <p class="stat-modal-eyebrow">Stat Details</p>
+            <h2 class="stat-modal-title" id="statModalTitle"></h2>
+          </div>
+          <button class="stat-modal-close" id="statModalClose" type="button" aria-label="Close stat details">&times;</button>
+        </div>
+        <div class="stat-modal-summary">
+          <p class="stat-modal-value" id="statModalValue"></p>
+          <p class="stat-modal-detail" id="statModalDetail"></p>
+        </div>
+        <section class="stat-modal-section" aria-label="Formula">
+          <h3>Formula</h3>
+          <p class="stat-modal-equation" id="statModalEquation"></p>
+        </section>
+        <section class="stat-modal-section" aria-label="Data used">
+          <h3>Data Used</h3>
+          <ul class="stat-modal-list" id="statModalData"></ul>
+        </section>
+        <section class="stat-modal-section" aria-label="Note">
+          <h3>Note</h3>
+          <p id="statModalNote"></p>
+        </section>
+      </div>
+    </dialog>
+
     <section class="info-panel" aria-label="Capacity and occupancy estimate source">
       <h2>Capacity Assumptions</h2>
       <p>
@@ -325,7 +534,9 @@
   <script>
     const data = JSON.parse(document.getElementById("chart-data").textContent);
     const colors = ["#17202a", "#0f7c80", "#d1495b", "#2d6cdf", "#8a5a00", "#5f3dc4", "#28724f"];
+    const dayMs = 24 * 60 * 60 * 1000;
     const numberFormatter = new Intl.NumberFormat();
+    const currencyFormatter = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
     const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
     const dayFormatter = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" });
     const hourFormatter = new Intl.DateTimeFormat(undefined, { hour: "numeric" });
@@ -372,13 +583,71 @@
         ],
       },
     };
+    const fallbackDailyMaxRates = {
+      "Garage": 21,
+      "Daily A": 14,
+      "South Economy Lot": 12,
+      "East Economy Lot": 12,
+      "West Economy Lot": 12,
+    };
+    const lotDailyMaxRates = { ...fallbackDailyMaxRates, ...(data.lot_daily_max_rates || {}) };
     const lotIcons = {
       shuttle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M4 11h16"></path><path d="M8 7h8"></path><path d="M7 21h2"></path><path d="M15 21h2"></path><circle cx="8" cy="15" r="1"></circle><circle cx="16" cy="15" r="1"></circle></svg>`,
       walk: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="1.8"></circle><path d="m10 8 4 .8"></path><path d="m11.5 8.2-1.2 5.1"></path><path d="m10.3 13.3-3 5.7"></path><path d="m10.6 13.4 4.4 2.6"></path><path d="m15 16 2 4"></path></svg>`,
     };
 
+    function displayLotName(name) {
+      return lotProfiles[name]?.displayName || name;
+    }
+
     function formatNumber(value) {
       return numberFormatter.format(value || 0);
+    }
+
+    function formatCurrency(value) {
+      return currencyFormatter.format(value || 0);
+    }
+
+    function lotDailyMaxRate(name) {
+      const rate = lotDailyMaxRates[name];
+      return Number.isFinite(rate) ? rate : 0;
+    }
+
+    function lotOccupiedSpaces(point, name) {
+      const occupied = point.occupied_lots?.[name];
+      if (Number.isFinite(occupied)) {
+        return occupied;
+      }
+
+      const capacity = point.capacities?.[name];
+      const free = point.lots?.[name];
+      if (Number.isFinite(capacity) && Number.isFinite(free)) {
+        return Math.max(capacity - free, 0);
+      }
+
+      return null;
+    }
+
+    function parkingValueForPoint(point) {
+      let occupiedSpaces = 0;
+      let dailyValue = 0;
+
+      lotNames.forEach((name) => {
+        const occupied = lotOccupiedSpaces(point, name);
+        const dailyMaxRate = lotDailyMaxRate(name);
+        if (!Number.isFinite(occupied) || dailyMaxRate <= 0) {
+          return;
+        }
+
+        occupiedSpaces += occupied;
+        dailyValue += occupied * dailyMaxRate;
+      });
+
+      return { dailyValue, occupiedSpaces };
+    }
+
+    function dataRangeText(firstPoint, lastPoint) {
+      return `${dateFormatter.format(pointTime(firstPoint))} to ${dateFormatter.format(pointTime(lastPoint))}`;
     }
 
     function signedNumber(value) {
@@ -388,6 +657,26 @@
 
     function pointTime(point) {
       return new Date(point.scraped_at);
+    }
+
+    function hourRange(hour) {
+      const start = new Date(2000, 0, 1, hour);
+      const end = new Date(2000, 0, 1, (hour + 1) % 24);
+      return `${hourFormatter.format(start)}-${hourFormatter.format(end)}`;
+    }
+
+    function formatDuration(ms) {
+      const minutes = Math.max(1, Math.round(ms / (60 * 1000)));
+      if (minutes < 60) {
+        return `${minutes} min`;
+      }
+      const hours = Math.floor(minutes / 60);
+      const remainder = minutes % 60;
+      return remainder ? `${hours} hr ${remainder} min` : `${hours} hr`;
+    }
+
+    function countText(count, singular) {
+      return `${formatNumber(count)} ${count === 1 ? singular : `${singular}s`}`;
     }
 
     function setText(id, value) {
@@ -444,6 +733,271 @@
       summary.append(description, traits);
       return summary;
     }
+
+    function garageSweetSpotStat() {
+      const buckets = new Map();
+      let usableReadings = 0;
+      points.forEach((point) => {
+        const value = point.lots?.Garage;
+        if (!Number.isFinite(value)) {
+          return;
+        }
+
+        usableReadings += 1;
+        const hour = pointTime(point).getHours();
+        const bucket = buckets.get(hour) || { hour, sum: 0, count: 0 };
+        bucket.sum += value;
+        bucket.count += 1;
+        buckets.set(hour, bucket);
+      });
+
+      let best = null;
+      buckets.forEach((bucket) => {
+        const average = bucket.sum / bucket.count;
+        if (!best || average > best.average) {
+          best = { ...bucket, average };
+        }
+      });
+
+      if (!best) {
+        return {
+          label: "Garage Sweet Spot",
+          value: "n/a",
+          detail: "No garage readings yet",
+          help: "Groups garage readings by local hour and picks the hour with the highest average free spaces.",
+          equation: "average free spaces by hour = sum(garage free spaces in that hour) / garage readings in that hour",
+          dataPoints: ["No finite garage free-space readings were available."],
+          note: "This stat uses all historical garage readings currently embedded in the page, not just the latest reading.",
+        };
+      }
+
+      return {
+        label: "Garage Sweet Spot",
+        value: hourRange(best.hour),
+        detail: `${formatNumber(Math.round(best.average))} avg free spaces from ${countText(best.count, "reading")}`,
+        help: "Groups garage readings by local hour and picks the hour with the highest average free spaces.",
+        equation: "average free spaces by hour = sum(garage free spaces in that hour) / garage readings in that hour",
+        dataPoints: [
+          `Dataset: ${countText(usableReadings, "garage reading")} across ${dataRangeText(points[0], points[points.length - 1])}`,
+          `Winning hour: ${hourRange(best.hour)}`,
+          `Free-space sum for winning hour: ${formatNumber(best.sum)}`,
+          `Average: ${formatNumber(best.sum)} / ${best.count} = ${formatNumber(Math.round(best.average))}`,
+        ],
+        note: "This stat uses all historical garage readings currently embedded in the page, not just the latest reading.",
+      };
+    }
+
+    function estimatedRevenueSinceStartStat() {
+      if (points.length < 2) {
+        return {
+          label: "Estimated Revenue Since Start",
+          value: "n/a",
+          detail: "Need at least two readings",
+          help: "A gross estimate: average occupied spaces between each pair of readings, multiplied by each lot's daily max rate, then prorated by elapsed time. It is not profit.",
+          equation: "estimated revenue = sum over intervals [sum over lots (((occupied start + occupied end) / 2) x daily max rate) x elapsed days]",
+          dataPoints: ["At least two readings are required to form one time interval."],
+          note: "This is estimated gross parking revenue, not profit.",
+        };
+      }
+
+      let estimatedRevenue = 0;
+      let intervalsUsed = 0;
+      let elapsedTotalMs = 0;
+      let firstPoint = null;
+      let lastPoint = null;
+      for (let index = 1; index < points.length; index += 1) {
+        const previousPoint = points[index - 1];
+        const currentPoint = points[index];
+        const elapsedMs = timestampFor(currentPoint) - timestampFor(previousPoint);
+        if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) {
+          continue;
+        }
+
+        let intervalDailyValue = 0;
+        lotNames.forEach((name) => {
+          const previousOccupied = lotOccupiedSpaces(previousPoint, name);
+          const currentOccupied = lotOccupiedSpaces(currentPoint, name);
+          const dailyMaxRate = lotDailyMaxRate(name);
+          if (!Number.isFinite(previousOccupied) || !Number.isFinite(currentOccupied) || dailyMaxRate <= 0) {
+            return;
+          }
+
+          intervalDailyValue += ((previousOccupied + currentOccupied) / 2) * dailyMaxRate;
+        });
+
+        estimatedRevenue += intervalDailyValue * (elapsedMs / dayMs);
+        intervalsUsed += 1;
+        elapsedTotalMs += elapsedMs;
+        firstPoint ||= previousPoint;
+        lastPoint = currentPoint;
+      }
+
+      if (!firstPoint || !lastPoint) {
+        return {
+          label: "Estimated Revenue Since Start",
+          value: "n/a",
+          detail: "No usable time intervals",
+          help: "A gross estimate: average occupied spaces between each pair of readings, multiplied by each lot's daily max rate, then prorated by elapsed time. It is not profit.",
+          equation: "estimated revenue = sum over intervals [sum over lots (((occupied start + occupied end) / 2) x daily max rate) x elapsed days]",
+          dataPoints: ["No consecutive readings had a valid positive elapsed time."],
+          note: "This is estimated gross parking revenue, not profit.",
+        };
+      }
+
+      const firstValue = parkingValueForPoint(firstPoint);
+      const lastValue = parkingValueForPoint(lastPoint);
+      return {
+        label: "Estimated Revenue Since Start",
+        value: formatCurrency(Math.round(estimatedRevenue)),
+        detail: `${dayFormatter.format(pointTime(firstPoint))} to ${dayFormatter.format(pointTime(lastPoint))}`,
+        help: "A gross estimate: average occupied spaces between each pair of readings, multiplied by each lot's daily max rate, then prorated by elapsed time. It is not profit.",
+        equation: "estimated revenue = sum over intervals [sum over lots (((occupied start + occupied end) / 2) x daily max rate) x elapsed days]",
+        dataPoints: [
+          `Range: ${dataRangeText(firstPoint, lastPoint)}`,
+          `Intervals used: ${countText(intervalsUsed, "interval")}; elapsed time: ${formatDuration(elapsedTotalMs)}`,
+          `Starting daily value: ${formatCurrency(Math.round(firstValue.dailyValue))}/day from ${formatNumber(Math.round(firstValue.occupiedSpaces))} occupied spaces`,
+          `Latest daily value: ${formatCurrency(Math.round(lastValue.dailyValue))}/day from ${formatNumber(Math.round(lastValue.occupiedSpaces))} occupied spaces`,
+          `Rates used: Garage ${formatCurrency(lotDailyMaxRate("Garage"))}/day, Daily A ${formatCurrency(lotDailyMaxRate("Daily A"))}/day, Economy ${formatCurrency(lotDailyMaxRate("East Economy Lot"))}/day`,
+        ],
+        note: "This is estimated gross parking revenue, not profit. It assumes the posted daily max rate applies to occupied spaces and prorates between readings.",
+      };
+    }
+
+    function fastestTurnaroundStat() {
+      let best = null;
+      for (let index = 1; index < points.length; index += 1) {
+        const currentPoint = points[index];
+        const previousPoint = points[index - 1];
+        const elapsedMs = timestampFor(currentPoint) - timestampFor(previousPoint);
+        if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) {
+          continue;
+        }
+
+        lotNames.forEach((name) => {
+          const current = currentPoint.lots?.[name];
+          const previous = previousPoint.lots?.[name];
+          if (!Number.isFinite(current) || !Number.isFinite(previous)) {
+            return;
+          }
+
+          const delta = current - previous;
+          if (delta <= 0) {
+            return;
+          }
+
+          const rate = delta / (elapsedMs / (60 * 60 * 1000));
+          if (!best || rate > best.rate) {
+            best = { name, delta, elapsedMs, rate, previous, current, previousPoint, currentPoint };
+          }
+        });
+      }
+
+      if (!best) {
+        return {
+          label: "Fastest Turnaround",
+          value: "n/a",
+          detail: "Need more changing readings",
+          help: "Finds the fastest positive increase in free spaces for a lot between two consecutive readings.",
+          equation: "turnaround rate = increase in free spaces / elapsed time",
+          dataPoints: ["No lot had a positive free-space increase between consecutive valid readings."],
+          note: "A positive free-space change is treated as spaces opening up.",
+        };
+      }
+
+      return {
+        label: "Fastest Turnaround",
+        value: `${signedNumber(best.delta)} spaces`,
+        detail: `${displayLotName(best.name)} in ${formatDuration(best.elapsedMs)}`,
+        help: "Finds the fastest positive increase in free spaces for a lot between two consecutive readings.",
+        equation: "turnaround rate = increase in free spaces / elapsed time",
+        dataPoints: [
+          `Lot: ${displayLotName(best.name)}`,
+          `Previous reading: ${dateFormatter.format(pointTime(best.previousPoint))} with ${formatNumber(best.previous)} free spaces`,
+          `Current reading: ${dateFormatter.format(pointTime(best.currentPoint))} with ${formatNumber(best.current)} free spaces`,
+          `Change: ${formatNumber(best.current)} - ${formatNumber(best.previous)} = ${signedNumber(best.delta)} spaces`,
+          `Elapsed time: ${formatDuration(best.elapsedMs)}; rate: ${formatNumber(Math.round(best.rate))} spaces/hr`,
+        ],
+        note: "This stat scans every consecutive pair of readings for every lot and keeps the fastest positive free-space increase.",
+      };
+    }
+
+    function openStatModal(stat) {
+      const modal = document.getElementById("statModal");
+      const title = document.getElementById("statModalTitle");
+      const value = document.getElementById("statModalValue");
+      const detail = document.getElementById("statModalDetail");
+      const equation = document.getElementById("statModalEquation");
+      const dataList = document.getElementById("statModalData");
+      const note = document.getElementById("statModalNote");
+
+      title.textContent = stat.label;
+      value.textContent = stat.value;
+      detail.textContent = stat.detail;
+      equation.textContent = stat.equation || stat.help || "";
+      note.textContent = stat.note || stat.help || "";
+      dataList.textContent = "";
+      (stat.dataPoints || []).forEach((item) => {
+        const row = document.createElement("li");
+        row.textContent = item;
+        dataList.append(row);
+      });
+
+      if (typeof modal.showModal === "function") {
+        modal.showModal();
+      }
+    }
+
+    function closeStatModal() {
+      const modal = document.getElementById("statModal");
+      if (modal.open) {
+        modal.close();
+      }
+    }
+
+    function buildStatBadges() {
+      const container = document.getElementById("statBadges");
+      const stats = [garageSweetSpotStat(), estimatedRevenueSinceStartStat(), fastestTurnaroundStat()];
+      container.textContent = "";
+
+      stats.forEach((stat) => {
+        const badge = document.createElement("article");
+        badge.className = "stat-badge";
+
+        const label = document.createElement("p");
+        label.className = "stat-label";
+        const labelText = document.createElement("span");
+        labelText.textContent = stat.label;
+        label.append(labelText);
+        if (stat.help) {
+          const help = document.createElement("button");
+          help.className = "stat-help";
+          help.type = "button";
+          help.textContent = "?";
+          help.title = stat.help;
+          help.setAttribute("aria-label", `Show calculation details for ${stat.label}`);
+          help.addEventListener("click", () => openStatModal(stat));
+          label.append(help);
+        }
+
+        const value = document.createElement("p");
+        value.className = "stat-value";
+        value.textContent = stat.value;
+
+        const detail = document.createElement("p");
+        detail.className = "stat-detail";
+        detail.textContent = stat.detail;
+
+        badge.append(label, value, detail);
+        container.append(badge);
+      });
+    }
+
+    document.getElementById("statModalClose").addEventListener("click", closeStatModal);
+    document.getElementById("statModal").addEventListener("click", (event) => {
+      if (event.target.id === "statModal") {
+        closeStatModal();
+      }
+    });
 
     if (data.generated_at) {
       setGeneratedAt(`Last refreshed ${dateFormatter.format(new Date(data.generated_at))}`);
@@ -663,7 +1217,7 @@
 
         const title = document.createElement("h2");
         title.className = "chart-title";
-        title.textContent = lotProfiles[name]?.displayName || name;
+        title.textContent = displayLotName(name);
 
         const meta = document.createElement("p");
         meta.className = "chart-meta";
@@ -712,6 +1266,7 @@
       echarts.connect("parking-history");
     }
 
+    buildStatBadges();
     buildLotChartPanels();
     renderCharts();
 

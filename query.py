@@ -298,6 +298,11 @@ def int_value(value: Any) -> int | None:
     return value if isinstance(value, int) else None
 
 
+def daily_max_rate(pricing: Any) -> float | None:
+    match = re.search(r"\$(\d+(?:\.\d+)?)\s*/\s*day\s+max", str(pricing), re.IGNORECASE)
+    return float(match.group(1)) if match else None
+
+
 def build_chart_data(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
     lot_config = load_lot_config()
     aliases = {
@@ -313,6 +318,8 @@ def build_chart_data(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
     lot_names: list[str] = []
     seen_lots: set[str] = set()
     points: list[dict[str, Any]] = []
+    latest_pricing: dict[str, str] = {}
+    lot_daily_max_rates: dict[str, float] = {}
 
     for snapshot in snapshots:
         lots_by_name: dict[str, int | None] = {}
@@ -329,6 +336,13 @@ def build_chart_data(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
             name = canonical_lot_name(lot.get("name"), lot.get("id", ""), aliases)
             if not name:
                 continue
+
+            pricing = str(lot.get("pricing") or "").strip()
+            if pricing:
+                latest_pricing[name] = pricing
+                rate = daily_max_rate(pricing)
+                if rate is not None:
+                    lot_daily_max_rates[name] = rate
 
             free_spaces = int_value(lot.get("free_spaces"))
             capacity = capacities.get(name)
@@ -369,7 +383,9 @@ def build_chart_data(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "lot_daily_max_rates": lot_daily_max_rates,
         "lot_names": lot_names,
+        "lot_pricing": latest_pricing,
         "points": points,
         "summary": {
             "snapshot_count": len(points),
