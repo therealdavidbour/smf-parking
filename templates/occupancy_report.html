@@ -17,6 +17,9 @@
       --accent-3: #2d6cdf;
       --accent-4: #8a5a00;
       --accent-5: #5f3dc4;
+      --danger: #c2410c;
+      --warning: #d97706;
+      --safe: #15803d;
     }
     * { box-sizing: border-box; }
     body {
@@ -384,6 +387,9 @@
     .chart-panel {
       padding: 16px;
     }
+    .chart-panel + .chart-panel {
+      margin-top: 16px;
+    }
     .info-panel {
       display: grid;
       grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr);
@@ -426,6 +432,80 @@
       margin: 0;
       color: var(--muted);
       font-size: 0.86rem;
+    }
+    .heatmap-wrap {
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .heatmap {
+      display: grid;
+      grid-template-columns: minmax(132px, 0.9fr) repeat(24, minmax(30px, 1fr));
+      gap: 4px;
+      min-width: 900px;
+      align-items: stretch;
+    }
+    .heatmap-label, .heatmap-hour, .heatmap-cell {
+      min-width: 0;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      line-height: 1;
+    }
+    .heatmap-label {
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      color: #40505f;
+      font-weight: 760;
+    }
+    .heatmap-hour {
+      padding: 7px 2px;
+      color: var(--muted);
+      font-weight: 700;
+      text-align: center;
+    }
+    .heatmap-cell {
+      display: flex;
+      min-height: 30px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(23, 32, 42, 0.06);
+      background: hsl(var(--availability-hue) 72% 43% / var(--availability-alpha));
+      color: #17202a;
+      font-weight: 760;
+      font-variant-numeric: tabular-nums;
+    }
+    .heatmap-cell-empty {
+      border-style: dashed;
+      background: #f1f4f7;
+      color: #7b8a96;
+      font-weight: 700;
+    }
+    .heatmap-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+    .heatmap-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .heatmap-swatch {
+      width: 18px;
+      height: 10px;
+      border-radius: 999px;
+    }
+    .heatmap-swatch-low {
+      background: rgb(194 65 12 / 0.58);
+    }
+    .heatmap-swatch-mid {
+      background: rgb(217 119 6 / 0.48);
+    }
+    .heatmap-swatch-high {
+      background: rgb(21 128 61 / 0.52);
     }
     .lot-summary {
       display: grid;
@@ -612,6 +692,25 @@
       </p>
     </section>
 
+    <section class="chart-panel" aria-label="Typical hourly parking availability heatmap">
+      <div class="chart-head">
+        <div>
+          <h2 class="chart-title">Typical Availability by Hour</h2>
+          <p class="chart-meta">Average free capacity by lot and hour of day, shown in SMF local time. Darker green means more spaces were usually available.</p>
+        </div>
+        <p class="chart-meta">Based on current history</p>
+      </div>
+      <div class="heatmap-wrap">
+        <div class="heatmap" id="availabilityHeatmap"></div>
+      </div>
+      <div class="heatmap-legend" aria-hidden="true">
+        <span class="heatmap-legend-item"><span class="heatmap-swatch heatmap-swatch-low"></span>tight</span>
+        <span class="heatmap-legend-item"><span class="heatmap-swatch heatmap-swatch-mid"></span>moderate</span>
+        <span class="heatmap-legend-item"><span class="heatmap-swatch heatmap-swatch-high"></span>roomier</span>
+        <span class="heatmap-legend-item">Numbers are average free capacity.</span>
+      </div>
+    </section>
+
     <section class="chart-panel" aria-label="Total parking occupancy chart">
       <div class="chart-head">
         <div>
@@ -632,14 +731,19 @@
   <script id="chart-data" type="application/json">__CHART_DATA_JSON__</script>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
   <script>
-    const data = JSON.parse(document.getElementById("chart-data").textContent);
+    const chartDataText = document.getElementById("chart-data").textContent.trim();
+    const unresolvedChartData = "__" + "CHART_DATA_JSON__";
+    const data = chartDataText === unresolvedChartData ? { points: [], lot_names: [], summary: {} } : JSON.parse(chartDataText);
     const colors = ["#17202a", "#0f7c80", "#d1495b", "#2d6cdf", "#8a5a00", "#5f3dc4", "#28724f"];
+    const airportTimeZone = "America/Los_Angeles";
     const dayMs = 24 * 60 * 60 * 1000;
+    const defaultZoomMs = 7 * dayMs;
     const numberFormatter = new Intl.NumberFormat();
     const currencyFormatter = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
     const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
     const dayFormatter = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" });
     const hourFormatter = new Intl.DateTimeFormat(undefined, { hour: "numeric" });
+    const airportHourNumberFormatter = new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: airportTimeZone });
 
     const points = data.points || [];
     const lotNames = data.lot_names || [];
@@ -708,9 +812,24 @@
       return currencyFormatter.format(value || 0);
     }
 
+    function formatPercent(value) {
+      return `${Math.round(value)}%`;
+    }
+
     function lotDailyMaxRate(name) {
       const rate = lotDailyMaxRates[name];
       return Number.isFinite(rate) ? rate : 0;
+    }
+
+    function lotCapacity(name) {
+      for (let index = points.length - 1; index >= 0; index -= 1) {
+        const capacity = points[index].capacities?.[name];
+        if (Number.isFinite(capacity) && capacity > 0) {
+          return capacity;
+        }
+      }
+
+      return null;
     }
 
     function lotOccupiedSpaces(point, name) {
@@ -757,6 +876,15 @@
 
     function pointTime(point) {
       return new Date(point.scraped_at);
+    }
+
+    function airportHour(point) {
+      const value = airportHourNumberFormatter.format(pointTime(point));
+      return Number(value) % 24;
+    }
+
+    function airportHourLabel(hour) {
+      return hourFormatter.format(new Date(2000, 0, 1, hour));
     }
 
     function hourRange(hour) {
@@ -1092,6 +1220,94 @@
       });
     }
 
+    function heatmapColor(percent) {
+      if (percent < 15) {
+        return { hue: 18, alpha: 0.22 + (15 - percent) / 15 * 0.42 };
+      }
+      if (percent < 35) {
+        return { hue: 38, alpha: 0.22 + (35 - percent) / 20 * 0.28 };
+      }
+      return { hue: 145, alpha: Math.min(0.72, 0.24 + (percent - 35) / 65 * 0.48) };
+    }
+
+    function hourlyAvailabilityBuckets(name) {
+      const capacity = lotCapacity(name);
+      const buckets = Array.from({ length: 24 }, (_, hour) => ({ hour, sumSpaces: 0, sumPercent: 0, count: 0 }));
+      if (!Number.isFinite(capacity) || capacity <= 0) {
+        return { capacity: null, buckets };
+      }
+
+      points.forEach((point) => {
+        const value = point.lots?.[name];
+        if (!Number.isFinite(value)) {
+          return;
+        }
+
+        const bucket = buckets[airportHour(point)];
+        bucket.sumSpaces += value;
+        bucket.sumPercent += (value / capacity) * 100;
+        bucket.count += 1;
+      });
+
+      return { capacity, buckets };
+    }
+
+    function buildAvailabilityHeatmap() {
+      const container = document.getElementById("availabilityHeatmap");
+      if (!container) {
+        return;
+      }
+
+      container.textContent = "";
+
+      const corner = document.createElement("div");
+      corner.className = "heatmap-hour";
+      corner.textContent = "Lot";
+      container.append(corner);
+
+      for (let hour = 0; hour < 24; hour += 1) {
+        const header = document.createElement("div");
+        header.className = "heatmap-hour";
+        header.textContent = airportHourLabel(hour).replace(/\s/g, "");
+        container.append(header);
+      }
+
+      lotNames.forEach((name) => {
+        const label = document.createElement("div");
+        label.className = "heatmap-label";
+        label.textContent = displayLotName(name);
+        container.append(label);
+
+        const { buckets } = hourlyAvailabilityBuckets(name);
+        buckets.forEach((bucket) => {
+          const cell = document.createElement("div");
+          cell.className = "heatmap-cell";
+
+          if (!bucket.count) {
+            cell.classList.add("heatmap-cell-empty");
+            cell.textContent = "-";
+            cell.title = `${displayLotName(name)} at ${airportHourLabel(bucket.hour)}: no numeric readings`;
+            container.append(cell);
+            return;
+          }
+
+          const averagePercent = bucket.sumPercent / bucket.count;
+          const averageSpaces = bucket.sumSpaces / bucket.count;
+          const color = heatmapColor(averagePercent);
+          cell.style.setProperty("--availability-hue", color.hue);
+          cell.style.setProperty("--availability-alpha", color.alpha.toFixed(2));
+          cell.textContent = formatPercent(averagePercent);
+          cell.title = [
+            `${displayLotName(name)} at ${airportHourLabel(bucket.hour)} SMF time`,
+            `${formatPercent(averagePercent)} average free capacity`,
+            `${formatNumber(Math.round(averageSpaces))} average free spaces`,
+            `${countText(bucket.count, "reading")}`,
+          ].join(" | ");
+          container.append(cell);
+        });
+      });
+    }
+
     document.getElementById("statModalClose").addEventListener("click", closeStatModal);
     document.getElementById("statModal").addEventListener("click", (event) => {
       if (event.target.id === "statModal") {
@@ -1147,12 +1363,24 @@
       ].join("");
     }
 
+    function defaultZoomRange(chartMin, chartMax) {
+      if (!Number.isFinite(chartMin) || !Number.isFinite(chartMax)) {
+        return {};
+      }
+
+      return {
+        startValue: Math.max(chartMin, chartMax - defaultZoomMs),
+        endValue: chartMax,
+      };
+    }
+
     function chartOption({ name, seriesData, color, total = false }) {
       const usableValues = seriesData.map((item) => item[1]).filter(Number.isFinite);
       const noData = !usableValues.length;
       const chartMin = seriesData[0]?.[0];
       const chartMax = seriesData[seriesData.length - 1]?.[0];
       const showDayScale = Number.isFinite(chartMin) && Number.isFinite(chartMax) && (chartMax - chartMin) > 24 * 60 * 60 * 1000;
+      const zoomRange = defaultZoomRange(chartMin, chartMax);
 
       return {
         color: [color],
@@ -1199,7 +1427,6 @@
             min: chartMin,
             max: chartMax,
             minInterval: 24 * 60 * 60 * 1000,
-            maxInterval: 24 * 60 * 60 * 1000,
             offset: 10,
             axisLine: { show: false },
             axisTick: { show: false },
@@ -1207,8 +1434,7 @@
               color: "#40505f",
               fontWeight: 700,
               margin: 10,
-              hideOverlap: false,
-              interval: 0,
+              hideOverlap: true,
               showMinLabel: true,
               showMaxLabel: true,
               formatter: (value) => dayFormatter.format(new Date(value)),
@@ -1236,6 +1462,7 @@
             filterMode: "none",
             zoomOnMouseWheel: true,
             moveOnMouseMove: true,
+            ...zoomRange,
           },
           ...(total ? [{
             type: "slider",
@@ -1247,6 +1474,7 @@
             handleStyle: { color: "#0f7c80" },
             textStyle: { color: "#5f6b7a" },
             filterMode: "none",
+            ...zoomRange,
           }] : []),
         ],
         series: [{
@@ -1367,6 +1595,7 @@
     }
 
     buildStatBadges();
+    buildAvailabilityHeatmap();
     buildLotChartPanels();
     renderCharts();
 
