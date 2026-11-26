@@ -28,6 +28,11 @@ Configured capacity values are used to estimate occupied spaces from records
 that only report free spaces. Closed lots without a free-space value remain
 unknown for occupied-space estimates.
 
+SMF's "Garage 1" is mapped to the historical `Garage` key so its readings retain
+the existing history and 5,230-space capacity. It is displayed as "Garage 1" in
+the report. "Garage 2" is tracked separately with its published 5,500-space
+capacity. When SMF reports only "Open", its free and occupied counts remain unknown.
+
 Each JSONL line has this shape:
 
 ```json
@@ -40,6 +45,12 @@ Run one scrape locally:
 
 ```bash
 uv run python query.py
+```
+
+Run regression tests:
+
+```bash
+uv run python -m unittest discover -s tests -v
 ```
 
 Configuration is set with environment variables:

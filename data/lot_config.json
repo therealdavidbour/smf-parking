@@ -5,6 +5,7 @@
     "east economy": "East Economy Lot",
     "east economy lot": "East Economy Lot",
     "garage": "Garage",
+    "garage 1": "Garage",
     "parking garage": "Garage",
     "south economy lot": "South Economy Lot",
     "west economy lot": "West Economy Lot"
@@ -18,6 +19,9 @@
     },
     "Garage": {
       "capacity": 5230
+    },
+    "Garage 2": {
+      "capacity": 5500
     },
     "South Economy Lot": {
       "capacity": 2936

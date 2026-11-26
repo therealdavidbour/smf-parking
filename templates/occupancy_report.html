@@ -750,12 +750,16 @@
     const charts = [];
     const lotProfiles = {
       "Garage": {
-        displayName: "Garage Lot",
+        displayName: "Garage 1",
         description: "Covered near-terminal parking with bridge access to Terminal A and Terminal B.",
         traits: [
           { icon: "shuttle", label: "No shuttle", tone: "muted" },
           { icon: "walk", label: "Pedestrian bridges" },
         ],
+      },
+      "Garage 2": {
+        description: "New parking garage west of Terminal B. SMF currently reports open status without a space count.",
+        traits: [],
       },
       "Daily A": {
         displayName: "Daily A Lot",
@@ -789,6 +793,7 @@
     };
     const fallbackDailyMaxRates = {
       "Garage": 21,
+      "Garage 2": 28,
       "Daily A": 14,
       "South Economy Lot": 12,
       "East Economy Lot": 12,
@@ -989,7 +994,7 @@
 
       if (!best) {
         return {
-          label: "Garage Sweet Spot",
+          label: "Garage 1 Sweet Spot",
           value: "n/a",
           detail: "No garage readings yet",
           help: "Groups garage readings by local hour and picks the hour with the highest average free spaces.",
@@ -1000,7 +1005,7 @@
       }
 
       return {
-        label: "Garage Sweet Spot",
+        label: "Garage 1 Sweet Spot",
         value: hourRange(best.hour),
         detail: `${formatNumber(Math.round(best.average))} avg free spaces from ${countText(best.count, "reading")}`,
         help: "Groups garage readings by local hour and picks the hour with the highest average free spaces.",
@@ -1085,7 +1090,7 @@
           `Intervals used: ${countText(intervalsUsed, "interval")}; elapsed time: ${formatDuration(elapsedTotalMs)}`,
           `Starting daily value: ${formatCurrency(Math.round(firstValue.dailyValue))}/day from ${formatNumber(Math.round(firstValue.occupiedSpaces))} occupied spaces`,
           `Latest daily value: ${formatCurrency(Math.round(lastValue.dailyValue))}/day from ${formatNumber(Math.round(lastValue.occupiedSpaces))} occupied spaces`,
-          `Rates used: Garage ${formatCurrency(lotDailyMaxRate("Garage"))}/day, Daily A ${formatCurrency(lotDailyMaxRate("Daily A"))}/day, Economy ${formatCurrency(lotDailyMaxRate("East Economy Lot"))}/day`,
+          `Rates used: Garage 1 ${formatCurrency(lotDailyMaxRate("Garage"))}/day, Daily A ${formatCurrency(lotDailyMaxRate("Daily A"))}/day, Economy ${formatCurrency(lotDailyMaxRate("East Economy Lot"))}/day`,
         ],
         note: "This is estimated gross parking revenue, not profit. It assumes the posted daily max rate applies to occupied spaces and prorates between readings.",
       };
